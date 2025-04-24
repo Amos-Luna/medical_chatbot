@@ -1,0 +1,14 @@
+jupyter
+streamlit
+pandas
+requests
+langgraph
+langchain-core
+langchain-openai
+langchain
+python-dotenv
+langchain-community
+sentence-transformers
+openpyxl
+faiss-cpu
+watchdog
