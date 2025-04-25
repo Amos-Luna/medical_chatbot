@@ -32,8 +32,6 @@ class Graph:
         """
         workflow = self.workflow
         workflow.add_node("supervisor_agent", supervisor_agent)
-        # agregar un agente para preguntas no relacionadas a medicamentos...
-        # agregar metricas de trulens
         workflow.add_node("allergy_agent", allergy_agent)
         workflow.add_node("digestive_agent", digestive_agent)
         workflow.add_node("vision_loss_agent", vision_loss_agent)
