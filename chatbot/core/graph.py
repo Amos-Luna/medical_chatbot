@@ -90,8 +90,8 @@ class Graph:
                 result = final_state["vision_loss_result"]
                 chunks_retrieved = final_state["chunks_retrieved"]
             else:
-                result = "I couldn't find any relevant information for your query."
-                chunks_retrieved = " Error, No relevant chunks retrieved"
+                result = final_state["messages"][-1].content
+                chunks_retrieved = ""
             
             print()
             print(f"Final result: {result}")

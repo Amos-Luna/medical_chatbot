@@ -29,7 +29,7 @@ def supervisor_agent(
 ) -> Command[Literal[
     "allergy_agent", 
     "digestive_agent", 
-    "vision_loss_agent", 
+    "vision_loss_agent",
     "__end__"]
 ]:
     """Supervisor agent that determine the next step to continue"""
@@ -58,7 +58,7 @@ def supervisor_agent(
     result = chain.invoke({"user_message": state["messages"]})
     print(f"supervisor_agente go to.... {result.next_step.strip()}")
 
-    if result.next_step.strip() not in ["allergy_agent", "digestive_agent", "vision_loss_agent"]:
+    if result.next_step.strip() not in ["allergy_agent", "digestive_agent", "vision_loss_agent", "no_related"]:
         print(f"---> [Error]--> Agent decision incorrectly: {result.next_step.strip()}. This should be 'allergy_agent' or 'digestive_agent' or 'vision_loss_agent'")
         raise ValueError(f"---> [Error]--> Agent decision incorrectly: {result.next_step.strip()}. This should be 'allergy_agent' or 'digestive_agent' or 'vision_loss_agent'")
 
@@ -96,6 +96,23 @@ def supervisor_agent(
                 "vision_loss_result": state["vision_loss_result"],
             },
             goto=result.next_step,
+        )
+    
+    if result.next_step.strip() == "no_related":
+        deafult_message = """
+        I cannot help you with that question because it is not related to allergies, digestive issues, or vision problems.
+        I have restricted my knowledge to these topics only.
+        If you have any other questions, please feel free to ask.
+        """
+        return Command(
+            update={
+                "messages": [AIMessage(content=deafult_message)],
+                "chunks_retrieved": state["chunks_retrieved"],
+                "allergy_result": state["allergy_result"],
+                "digestive_result": state["digestive_result"],
+                "vision_loss_result": state["vision_loss_result"],
+            },
+            goto="__end__",
         )
 
 

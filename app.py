@@ -93,21 +93,39 @@ def get_rag_metrics():
     chunks_retrieved = st.session_state.chunks_retrived_p2
     ai_response = st.session_state.ai_response_p3
 
+    print()
+    print(f"User message: {user_message}")
+    print(f"AI response: {ai_response}")
+    print(f"Chunks retrieved: {chunks_retrieved}")
+    
     score_answer_relevance = float(qualify_answer_relevance(user_message, ai_response))
-    score_context_relevance = float(qualify_context_relevance(user_message, chunks_retrieved))
-    score_groundedness = float(qualify_groundedness(chunks_retrieved, ai_response))
-    
     score_answer_relevance = min(10.0, max(0.0, score_answer_relevance))
-    score_context_relevance = min(10.0, max(0.0, score_context_relevance))
-    score_groundedness = min(10.0, max(0.0, score_groundedness))
     
-    score_final = (
-        (score_answer_relevance / 10.0) * 0.3 +
-        (score_context_relevance / 10.0) * 0.2 +
-        (score_groundedness / 10.0) * 0.5
-    )
-    
-    score_final = min(1.0, max(0.0, score_final))
+    if chunks_retrieved:
+        score_context_relevance = float(qualify_context_relevance(user_message, chunks_retrieved))
+        score_groundedness = float(qualify_groundedness(chunks_retrieved, ai_response))
+            
+        score_context_relevance = min(10.0, max(0.0, score_context_relevance))
+        score_groundedness = min(10.0, max(0.0, score_groundedness))
+        
+        score_final = (
+            (score_answer_relevance / 10.0) * 0.3 +
+            (score_context_relevance / 10.0) * 0.2 +
+            (score_groundedness / 10.0) * 0.5
+        )
+        
+        score_final = min(1.0, max(0.0, score_final))
+    else:
+        
+        score_context_relevance = 0.0
+        score_groundedness = 0.0
+        score_final = score_answer_relevance 
+
+    print("----> metrics")
+    print(f"Answer Relevance: {score_answer_relevance}")
+    print(f"Context Relevance: {score_context_relevance}")
+    print(f"Groundedness: {score_groundedness}")
+    print(f"Final Score: {score_final}")
     
     st.session_state.score_answer_relevance = score_answer_relevance
     st.session_state.score_context_relevance = score_context_relevance
@@ -117,7 +135,7 @@ def get_rag_metrics():
 
 def display_rag_metrics():
     """
-    Muestra las métricas RAG con barras horizontales de Streamlit
+    Show RAG performance metrics in the sidebar.
     """
     st.subheader("RAG Performance Metrics")
     
