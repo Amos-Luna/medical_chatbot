@@ -11,10 +11,11 @@ class DocumentRetriever:
         """Initialize with a DB manager or create a new one if not provided."""
         self.db_manager = db_manager if db_manager else VectorDBManager()
     
+    
     def retrieve(
         self, 
         query: str, 
-        top_k: int = 2, 
+        top_k: int = 5, 
         **kwargs
     ):
         """Retrieve documents based on query.

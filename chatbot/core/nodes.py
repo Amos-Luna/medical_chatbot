@@ -1,3 +1,4 @@
+import streamlit as st
 import logging
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -23,7 +24,6 @@ load_dotenv()
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-
 def supervisor_agent(
     state: CustomState,
 ) -> Command[Literal[
@@ -39,6 +39,7 @@ def supervisor_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["chunks_retrieved"],
                 "allergy_result": state["allergy_result"],
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -65,6 +66,7 @@ def supervisor_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["chunks_retrieved"],
                 "allergy_result": state["allergy_result"],
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -76,6 +78,7 @@ def supervisor_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["chunks_retrieved"],
                 "allergy_result": state["allergy_result"],
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -87,6 +90,7 @@ def supervisor_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["chunks_retrieved"],
                 "allergy_result": state["allergy_result"],
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -98,7 +102,7 @@ def supervisor_agent(
 def allergy_agent(
     state: CustomState
 ) -> Command[Literal["analyst_agent_allergy","supervisor_agent"]]:
-    """Default agent that always answer question that is not related in any way to Databricks or related."""
+    """Agent to answer questions related to allergies"""
     print("Inside allergy_agent....")
     print()
     print(f"---> State --->: {state}")
@@ -121,6 +125,7 @@ def allergy_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["messages"][-1].content,
                 "allergy_result": result.content,
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -128,7 +133,6 @@ def allergy_agent(
             goto="supervisor_agent",
         )
     
-
     model_with_tools = llm.bind_tools(allergy_tools)
     prompt_template = ChatPromptTemplate.from_messages(
         [
@@ -147,6 +151,7 @@ def allergy_agent(
     return Command(
         update={    
             "messages": [result],
+            "chunks_retrieved": state["chunks_retrieved"],
             "allergy_result": state["allergy_result"],
             "digestive_result": state["digestive_result"],
             "vision_loss_result": state["vision_loss_result"],
@@ -158,7 +163,7 @@ def allergy_agent(
 def digestive_agent(
     state: CustomState
 ) -> Command[Literal["analyst_agent_digestive", "supervisor_agent"]]:
-    """Default agent that always answer question that is not related in any way to Databricks or related."""
+    """Agent to answer questions related to digestive issues"""
     print("Inside digestive_agent....")
     print(f"state: {state}")
     
@@ -176,10 +181,11 @@ def digestive_agent(
                 "chunks": state["messages"][-1].content
             }
         )
-        print("Result of digestive to supervisor agent: ", result)
+        print("Result of digestive to supervisor agent: ", result)        
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["messages"][-1].content,
                 "allergy_result": result.content,
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -187,7 +193,6 @@ def digestive_agent(
             goto="supervisor_agent",
         )
         
-    
     model_with_tools = llm.bind_tools(digestive_tools)
     prompt_template = ChatPromptTemplate.from_messages(
         [
@@ -205,6 +210,7 @@ def digestive_agent(
     return Command(
         update={    
             "messages": [result],
+            "chunks_retrieved": state["chunks_retrieved"],
             "allergy_result": state["allergy_result"],
             "digestive_result": state["digestive_result"],
             "vision_loss_result": state["vision_loss_result"],
@@ -216,7 +222,7 @@ def digestive_agent(
 def vision_loss_agent(
     state: CustomState
 ) -> Command[Literal["analyst_agent_vision_loss", "supervisor_agent"]]:
-    """Default agent that always answer question that is not related in any way to Databricks or related."""
+    """Agent to answer questions related to vision loss"""
     print("Inside vision_loss_agent....")
     print(f"state: {state}")
     
@@ -238,6 +244,7 @@ def vision_loss_agent(
         return Command(
             update={
                 "messages": state["messages"],
+                "chunks_retrieved": state["messages"][-1].content,
                 "allergy_result": result.content,
                 "digestive_result": state["digestive_result"],
                 "vision_loss_result": state["vision_loss_result"],
@@ -262,13 +269,14 @@ def vision_loss_agent(
     return Command(
         update={    
             "messages": [result],
+            "chunks_retrieved": state["chunks_retrieved"],
             "allergy_result": state["allergy_result"],
             "digestive_result": state["digestive_result"],
             "vision_loss_result": state["vision_loss_result"],
         },
         goto="analyst_agent_vision_loss",
     )
-    
+
     
 analyst_agent_allergy = ToolNode(allergy_tools)
 analyst_agent_digestive = ToolNode(digestive_tools)

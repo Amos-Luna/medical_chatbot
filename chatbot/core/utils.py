@@ -1,64 +1,86 @@
-import json
-import logging
-import tempfile
-from typing import List
-
-import pandas as pd
-from langchain_core.messages import ToolMessage
+from langchain.prompts import ChatPromptTemplate
+from analytics.prompt_answer_relevance import AnswerRelevance
+from analytics.prompt_context_relevance import ContextRelevance
+from analytics.prompt_groundedness import Groundedness
+from langchain_openai import ChatOpenAI
 
 
-class BasicToolNode:
-    """A node that runs the tools requested in the last AIMessage."""
-
-    def __init__(self, tools: list) -> None:
-        self.tools_by_name = {tool.name: tool for tool in tools}
-
-    def __call__(self, inputs: dict):
-        if messages := inputs.get("messages", []):
-            message = messages[-1]
-        else:
-            raise ValueError("No message found in input")
-
-        outputs = []
-        for tool_call in message.tool_calls:
-            tool_result = self.tools_by_name[tool_call["name"]].invoke(
-                tool_call["args"]
-            )
-            outputs.append(
-                ToolMessage(
-                    content=json.dumps(tool_result),
-                    name=tool_call["name"],
-                    tool_call_id=tool_call["id"],
-                )
-            )
-        return {"messages": outputs}
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
-def extract_metadata(genie_data: dict) -> tuple:
-    """Extract usefull metadata"""
-    logging.info(f"Extracting metadata from Genie data: {genie_data}")
+def qualify_answer_relevance(
+    question: str, 
+    response: str
+) -> int:
+    """How much is question related to the ai answer?"""
+
+    prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", AnswerRelevance.system_prompt.template),
+                ("user", AnswerRelevance.user_prompt.template),
+            ]
+        )
+    
+    chain = prompt_template | llm
+    result = chain.invoke({
+            "question": question,
+            "response": response
+        }
+    )
+    
     try:
-        # num_rows = genie_data["statement_response"]["manifest"].get("total_row_count", "")
-        schema = genie_data["statement_response"]["manifest"]["schema"].get("columns", [])
-        column_names = [col["name"] for col in schema]
-        data_array = genie_data["statement_response"]["result"].get("data_array", [[]])
-        return (column_names, data_array)
-    except Exception:
-        logging.error("Error extracting metadata")
-        return None
+        return int(result.content)
+    except ValueError as ve:
+        print(f"Error - Answer Relevance Score: {ve}")
 
 
-def json_to_dataframe(column_names: List[str], data_array: List[list]) -> pd.DataFrame:
-    """Transform metadata to dataframe structure"""
+def qualify_context_relevance(
+    question: str, 
+    context: str
+)-> int:
+    """How much context is related to the user message?"""
+
+    prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", ContextRelevance.system_prompt.template),
+                ("user", ContextRelevance.user_prompt.template),
+            ]
+        )
+    
+    chain = prompt_template | llm
+    result = chain.invoke({
+            "question": question,
+            "context": context
+        }
+    )
+    
     try:
-        df = pd.DataFrame(data_array, columns=column_names)
-        return df
-    except Exception:
-        logging.info("Error generating Dataframe...")
+        return int(result.content)
+    except ValueError as ve:
+        print(f"Error - Answer Relevance Score: {ve}")
+        
 
+def qualify_groundedness(
+    context: str, 
+    response: str
+) -> int:
+    """How much context is related to ai response?"""
 
-def save_dataframe_temp(df: pd.DataFrame) -> str:
-    """Save dataframe and get its temporary path"""
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-    df.to_excel(temp_file.name, index=False)
-    return temp_file.name
+    prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", Groundedness.system_prompt.template),
+                ("user", Groundedness.user_prompt.template),
+            ]
+        )
+    
+    chain = prompt_template | llm
+    result = chain.invoke({
+            "context": context,
+            "response": response
+        }
+    )
+    
+    try:
+        return int(result.content)
+    except ValueError as ve:
+        print(f"Error - Answer Relevance Score: {ve}")

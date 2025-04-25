@@ -32,6 +32,8 @@ class Graph:
         """
         workflow = self.workflow
         workflow.add_node("supervisor_agent", supervisor_agent)
+        # agregar un agente para preguntas no relacionadas a medicamentos...
+        # agregar metricas de trulens
         workflow.add_node("allergy_agent", allergy_agent)
         workflow.add_node("digestive_agent", digestive_agent)
         workflow.add_node("vision_loss_agent", vision_loss_agent)
@@ -71,6 +73,7 @@ class Graph:
             final_state: Dict[str, Any] = self.graph.invoke(
                 {
                     "messages": [HumanMessage(content=message)],
+                    "chunks_retrieved": "",
                     "allergy_result": "",
                     "digestive_result": "",
                     "vision_loss_result": "",
@@ -79,17 +82,21 @@ class Graph:
             
             if final_state["allergy_result"]:
                 result = final_state["allergy_result"]
+                chunks_retrieved = final_state["chunks_retrieved"]
             elif final_state["digestive_result"]:
                 result = final_state["digestive_result"]
+                chunks_retrieved = final_state["chunks_retrieved"]
             elif final_state["vision_loss_result"]:
                 result = final_state["vision_loss_result"]
+                chunks_retrieved = final_state["chunks_retrieved"]
             else:
                 result = "I couldn't find any relevant information for your query."
+                chunks_retrieved = " Error, No relevant chunks retrieved"
             
             print()
             print(f"Final result: {result}")
             
-            return result
+            return result, chunks_retrieved
 
         except Exception as e:
             print(f"Error executing agent: {e}")
